@@ -86,10 +86,10 @@ func TestIsValidInstruction(t *testing.T) {
 
 func TestParseInstructions_StrictFormatting(t *testing.T) {
 	tests := []struct {
-		name     string
-		input    string
-		want     []string
-		wantErr  bool
+		name    string
+		input   string
+		want    []string
+		wantErr bool
 	}{
 		{name: "valid", input: "sa\npb\nrrr\n", want: []string{"sa", "pb", "rrr"}},
 		{name: "leading space", input: " sa\n", wantErr: true},
