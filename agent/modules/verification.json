@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "module_id": "verification",
+  "purpose": "End-to-end checks that build current sources and exercise audit-facing behavior.",
+  "paths": [
+    {"path": "tests/integration_test.go", "lifecycle": "implemented", "provenance": "authored"}
+  ],
+  "contracts": [],
+  "validators": [],
+  "tests": ["tests/integration_test.go"],
+  "runtime_evidence": []
+}

@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "modules": {
+    "engine": {
+      "status": "implemented",
+      "roots": ["internal/stack/", "internal/actions/", "internal/validation/"],
+      "entrypoints": ["internal/stack/stack.go", "internal/actions/actions.go", "internal/validation/validation.go"],
+      "manifest": "agent/modules/engine.json",
+      "dependencies": []
+    },
+    "solver": {
+      "status": "implemented",
+      "roots": ["internal/algorithm/", "cmd/push-swap/"],
+      "entrypoints": ["cmd/push-swap/main.go", "internal/algorithm/sort.go"],
+      "manifest": "agent/modules/solver.json",
+      "dependencies": ["engine"]
+    },
+    "checker": {
+      "status": "implemented",
+      "roots": ["cmd/checker/"],
+      "entrypoints": ["cmd/checker/main.go"],
+      "manifest": "agent/modules/checker.json",
+      "dependencies": ["engine"]
+    },
+    "verification": {
+      "status": "implemented",
+      "roots": ["tests/"],
+      "entrypoints": ["tests/integration_test.go"],
+      "manifest": "agent/modules/verification.json",
+      "dependencies": ["solver", "checker"]
+    }
+  }
+}

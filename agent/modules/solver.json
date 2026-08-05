@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "module_id": "solver",
+  "purpose": "Generate push-swap instruction sequences, including small-stack and LIS-based sorting.",
+  "paths": [
+    {"path": "internal/algorithm/sort.go", "lifecycle": "implemented", "provenance": "authored"},
+    {"path": "internal/algorithm/sort_test.go", "lifecycle": "implemented", "provenance": "authored"},
+    {"path": "internal/algorithm/bench_test.go", "lifecycle": "implemented", "provenance": "authored"},
+    {"path": "cmd/push-swap/main.go", "lifecycle": "implemented", "provenance": "authored"}
+  ],
+  "contracts": [],
+  "validators": [],
+  "tests": ["internal/algorithm/sort_test.go", "internal/algorithm/bench_test.go"],
+  "runtime_evidence": []
+}

@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "module_id": "engine",
+  "purpose": "Shared stack semantics, push-swap operations, and input/instruction validation.",
+  "paths": [
+    {"path": "internal/stack/stack.go", "lifecycle": "implemented", "provenance": "authored"},
+    {"path": "internal/stack/stack_test.go", "lifecycle": "implemented", "provenance": "authored"},
+    {"path": "internal/actions/actions.go", "lifecycle": "implemented", "provenance": "authored"},
+    {"path": "internal/actions/actions_test.go", "lifecycle": "implemented", "provenance": "authored"},
+    {"path": "internal/validation/validation.go", "lifecycle": "implemented", "provenance": "authored"},
+    {"path": "internal/validation/validation_test.go", "lifecycle": "implemented", "provenance": "authored"}
+  ],
+  "contracts": [],
+  "validators": [],
+  "tests": ["internal/stack/stack_test.go", "internal/actions/actions_test.go", "internal/validation/validation_test.go"],
+  "runtime_evidence": []
+}
