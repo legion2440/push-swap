@@ -90,11 +90,11 @@ An operation that cannot affect a stack because it contains too few elements lea
 
 ## 🧠 Sorting strategy
 
-### 2–3 elements
+### 2-3 elements
 
 Small direct cases use short hand-written sequences.
 
-### 4–6 elements
+### 4-6 elements
 
 The solver runs breadth-first search over the complete two-stack state space after converting values to relative ranks. For six values the full state space contains only `7 × 6! = 5040` states, so BFS returns a shortest valid sequence for these sizes.
 
