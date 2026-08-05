@@ -2,6 +2,8 @@
 package validation
 
 import (
+	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -74,10 +76,39 @@ func TestIsValidInstruction(t *testing.T) {
 			t.Errorf("IsValidInstruction(%q) = false, ожидалось true", instr)
 		}
 	}
-	invalid := []string{"", "xx", "paa", "rraa", "p"}
+	invalid := []string{"", "xx", "paa", "rraa", "p", " sa", "sa ", "sa\t"}
 	for _, instr := range invalid {
 		if IsValidInstruction(instr) {
 			t.Errorf("IsValidInstruction(%q) = true, ожидалось false", instr)
 		}
+	}
+}
+
+func TestParseInstructions_StrictFormatting(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		want     []string
+		wantErr  bool
+	}{
+		{name: "valid", input: "sa\npb\nrrr\n", want: []string{"sa", "pb", "rrr"}},
+		{name: "leading space", input: " sa\n", wantErr: true},
+		{name: "trailing space", input: "sa \n", wantErr: true},
+		{name: "tab suffix", input: "sa\t\n", wantErr: true},
+		{name: "blank line", input: "\n", wantErr: true},
+		{name: "blank line between instructions", input: "sa\n\npb\n", wantErr: true},
+		{name: "unknown instruction", input: "sa\nxx\n", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseInstructions(strings.NewReader(tt.input))
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("parseInstructions(%q): err=%v, wantErr=%v", tt.input, err, tt.wantErr)
+			}
+			if !tt.wantErr && !reflect.DeepEqual(got, tt.want) {
+				t.Fatalf("parseInstructions(%q)=%v, want %v", tt.input, got, tt.want)
+			}
+		})
 	}
 }
