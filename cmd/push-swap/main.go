@@ -7,8 +7,8 @@ import (
 	"os"
 
 	"push-swap/internal/algorithm"
-	"push-swap/internal/validation"
 	"push-swap/internal/stack"
+	"push-swap/internal/validation"
 )
 
 func main() {

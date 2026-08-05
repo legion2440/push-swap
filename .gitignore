@@ -1,0 +1,9 @@
+# Build outputs
+/checker
+/checker.exe
+/push-swap
+/push-swap.exe
+
+# Local test/build artifacts
+*.test
+coverage.out

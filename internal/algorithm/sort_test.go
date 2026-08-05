@@ -43,7 +43,7 @@ func TestSort(t *testing.T) {
 func TestSort_InstructionLimits(t *testing.T) {
 	tests := []struct {
 		input    []int
-		maxInstr  int
+		maxInstr int
 	}{
 		{[]int{2, 1, 3, 6, 5, 8}, 8},
 		{[]int{4, 67, 3, 87, 23}, 12},

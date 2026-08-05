@@ -54,10 +54,10 @@ func TestExecute_ReverseRotate(t *testing.T) {
 
 func TestExecute_AllInstructions(t *testing.T) {
 	tests := []struct {
-		name string
-		a    []int
-		b    []int
-		cmd  string
+		name  string
+		a     []int
+		b     []int
+		cmd   string
 		check func(t *testing.T, a, b *stack.Stack)
 	}{
 		{"ss", []int{2, 1}, []int{4, 3}, "ss", func(t *testing.T, a, b *stack.Stack) {

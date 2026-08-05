@@ -5,17 +5,24 @@ package tests
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"testing"
 )
 
 var (
-	pushSwapBin string
-	checkerBin  string
+	pushSwapBin  string
+	checkerBin   string
+	pushSwapPath string
+	checkerPath  string
+	testBinDir   string
+	buildOnce    sync.Once
+	buildErr     error
 )
 
 func init() {
@@ -29,9 +36,9 @@ func init() {
 }
 
 func runPushSwap(t *testing.T, args ...string) (stdout, stderr string, err error) {
+	ensureBinaries(t)
 	root := projectRoot()
-	bin := filepath.Join(root, pushSwapBin)
-	cmd := exec.Command(bin, args...)
+	cmd := exec.Command(pushSwapPath, args...)
 	cmd.Dir = root
 	var outBuf, errBuf bytes.Buffer
 	cmd.Stdout = &outBuf
@@ -41,9 +48,9 @@ func runPushSwap(t *testing.T, args ...string) (stdout, stderr string, err error
 }
 
 func runChecker(t *testing.T, args []string, stdin string) (stdout, stderr string, err error) {
+	ensureBinaries(t)
 	root := projectRoot()
-	bin := filepath.Join(root, checkerBin)
-	cmd := exec.Command(bin, args...)
+	cmd := exec.Command(checkerPath, args...)
 	cmd.Dir = root
 	cmd.Stdin = strings.NewReader(stdin)
 	var outBuf, errBuf bytes.Buffer
@@ -59,25 +66,45 @@ func projectRoot() string {
 }
 
 func ensureBinaries(t *testing.T) {
-	root := projectRoot()
-	ps := filepath.Join(root, pushSwapBin)
-	ch := filepath.Join(root, checkerBin)
-	if _, err := os.Stat(ps); os.IsNotExist(err) {
-		t.Logf("Сборка %s...", pushSwapBin)
-		cmd := exec.Command("go", "build", "-o", pushSwapBin, "./cmd/push-swap")
-		cmd.Dir = root
-		if out, err := cmd.CombinedOutput(); err != nil {
-			t.Fatalf("Не удалось собрать push-swap: %v\n%s", err, out)
+	t.Helper()
+	buildOnce.Do(func() {
+		root := projectRoot()
+		var err error
+		testBinDir, err = os.MkdirTemp("", "push-swap-integration-*")
+		if err != nil {
+			buildErr = fmt.Errorf("create temp binary dir: %w", err)
+			return
 		}
-	}
-	if _, err := os.Stat(ch); os.IsNotExist(err) {
-		t.Logf("Сборка %s...", checkerBin)
-		cmd := exec.Command("go", "build", "-o", checkerBin, "./cmd/checker")
-		cmd.Dir = root
-		if out, err := cmd.CombinedOutput(); err != nil {
-			t.Fatalf("Не удалось собрать checker: %v\n%s", err, out)
+
+		pushSwapPath = filepath.Join(testBinDir, pushSwapBin)
+		checkerPath = filepath.Join(testBinDir, checkerBin)
+
+		for _, target := range []struct {
+			output string
+			pkg    string
+		}{
+			{pushSwapPath, "./cmd/push-swap"},
+			{checkerPath, "./cmd/checker"},
+		} {
+			cmd := exec.Command("go", "build", "-o", target.output, target.pkg)
+			cmd.Dir = root
+			if out, err := cmd.CombinedOutput(); err != nil {
+				buildErr = fmt.Errorf("build %s: %w\n%s", target.pkg, err, out)
+				return
+			}
 		}
+	})
+	if buildErr != nil {
+		t.Fatal(buildErr)
 	}
+}
+
+func TestMain(m *testing.M) {
+	code := m.Run()
+	if testBinDir != "" {
+		_ = os.RemoveAll(testBinDir)
+	}
+	os.Exit(code)
 }
 
 func TestIntegration_PushSwap_NoArgs_OutputsNothing(t *testing.T) {
