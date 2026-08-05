@@ -4,6 +4,7 @@ package validation
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -49,17 +50,17 @@ func ParseArgs(args []string) ([]int, error) {
 // ParseInstructions читает инструкции из stdin, по одной на строку.
 // Возвращает слайс инструкций и ошибку при невалидной инструкции.
 func ParseInstructions() ([]string, error) {
+	return parseInstructions(os.Stdin)
+}
+
+func parseInstructions(r io.Reader) ([]string, error) {
 	var instructions []string
-	scanner := bufio.NewScanner(os.Stdin)
+	scanner := bufio.NewScanner(r)
 
 	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		// Пустая строка — конец ввода (чтобы checker не зависал при Enter)
-		if line == "" {
-			break
-		}
+		line := scanner.Text()
 		if !IsValidInstruction(line) {
-			return nil, fmt.Errorf("неизвестная инструкция: %s", line)
+			return nil, fmt.Errorf("неизвестная или неверно отформатированная инструкция: %q", line)
 		}
 		instructions = append(instructions, line)
 	}
