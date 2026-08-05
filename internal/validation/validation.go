@@ -56,9 +56,17 @@ func ParseInstructions() ([]string, error) {
 func parseInstructions(r io.Reader) ([]string, error) {
 	var instructions []string
 	scanner := bufio.NewScanner(r)
+	trailingBlank := false
 
 	for scanner.Scan() {
 		line := scanner.Text()
+		if line == "" {
+			trailingBlank = true
+			continue
+		}
+		if trailingBlank {
+			return nil, fmt.Errorf("пустая строка между инструкциями")
+		}
 		if !IsValidInstruction(line) {
 			return nil, fmt.Errorf("неизвестная или неверно отформатированная инструкция: %q", line)
 		}
