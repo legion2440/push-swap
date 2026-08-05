@@ -54,11 +54,22 @@ func ParseInstructions() ([]string, error) {
 
 func parseInstructions(r io.Reader) ([]string, error) {
 	var instructions []string
-	scanner := bufio.NewScanner(r)
+	reader := bufio.NewReader(r)
 	trailingBlank := false
 
-	for scanner.Scan() {
-		line := scanner.Text()
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			if err == io.EOF {
+				if line != "" {
+					return nil, fmt.Errorf("инструкция должна завершаться переводом строки")
+				}
+				return instructions, nil
+			}
+			return nil, fmt.Errorf("ошибка чтения: %w", err)
+		}
+
+		line = strings.TrimSuffix(line, "\n")
 		if line == "" {
 			trailingBlank = true
 			continue
@@ -71,12 +82,6 @@ func parseInstructions(r io.Reader) ([]string, error) {
 		}
 		instructions = append(instructions, line)
 	}
-
-	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("ошибка чтения: %w", err)
-	}
-
-	return instructions, nil
 }
 
 // Валидные инструкции push-swap.
