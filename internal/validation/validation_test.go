@@ -92,10 +92,12 @@ func TestParseInstructions_StrictFormatting(t *testing.T) {
 		wantErr bool
 	}{
 		{name: "valid", input: "sa\npb\nrrr\n", want: []string{"sa", "pb", "rrr"}},
+		{name: "echo trailing blank", input: "sa\npb\nrrr\n\n", want: []string{"sa", "pb", "rrr"}},
+		{name: "multiple trailing blanks", input: "sa\n\n\n", want: []string{"sa"}},
+		{name: "blank-only input", input: "\n", want: nil},
 		{name: "leading space", input: " sa\n", wantErr: true},
 		{name: "trailing space", input: "sa \n", wantErr: true},
 		{name: "tab suffix", input: "sa\t\n", wantErr: true},
-		{name: "blank line", input: "\n", wantErr: true},
 		{name: "blank line between instructions", input: "sa\n\npb\n", wantErr: true},
 		{name: "unknown instruction", input: "sa\nxx\n", wantErr: true},
 	}
