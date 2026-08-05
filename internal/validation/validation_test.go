@@ -103,6 +103,8 @@ func TestParseInstructions_StrictFormatting(t *testing.T) {
 		{name: "tab suffix", input: "sa\t\n", wantErr: true},
 		{name: "blank line between instructions", input: "sa\n\npb\n", wantErr: true},
 		{name: "unknown instruction", input: "sa\nxx\n", wantErr: true},
+		{name: "missing final newline", input: "sa", wantErr: true},
+		{name: "missing final newline after valid prefix", input: "sa\npb", wantErr: true},
 	}
 
 	for _, tt := range tests {
