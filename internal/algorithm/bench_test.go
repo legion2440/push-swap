@@ -3,6 +3,7 @@ package algorithm
 
 import (
 	"math/rand"
+	"strconv"
 	"testing"
 
 	"push-swap/internal/actions"
@@ -41,7 +42,7 @@ func TestSort_Large100Stress(t *testing.T) {
 	for seed := int64(0); seed < 500; seed++ {
 		rng := rand.New(rand.NewSource(seed))
 		input := rng.Perm(100)
-		count := checkLarge100(t, "random seed "+formatSeed(seed), input)
+		count := checkLarge100(t, "random seed "+strconv.FormatInt(seed, 10), input)
 		if count > maxInstructions {
 			maxInstructions = count
 			maxSeed = seed
@@ -82,20 +83,4 @@ func TestSort_Large100StructuredCases(t *testing.T) {
 			t.Logf("%s: %d instructions", tc.name, count)
 		})
 	}
-}
-
-func formatSeed(seed int64) string {
-	if seed == 0 {
-		return "0"
-	}
-
-	buf := make([]byte, 0, 20)
-	for seed > 0 {
-		buf = append(buf, byte('0'+seed%10))
-		seed /= 10
-	}
-	for i, j := 0, len(buf)-1; i < j; i, j = i+1, j-1 {
-		buf[i], buf[j] = buf[j], buf[i]
-	}
-	return string(buf)
 }
