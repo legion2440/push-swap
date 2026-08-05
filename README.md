@@ -1,34 +1,30 @@
 # Push-Swap
 
-Two Go CLI programs for sorting integers through a constrained set of operations on two stacks: `push-swap` generates an instruction sequence, while `checker` executes that sequence and validates the result.
+Two Go CLI programs for sorting integers with a restricted set of operations on two stacks. `push-swap` generates the operations; `checker` replays them and verifies the result.
 
-Small stacks use exact solutions, larger stacks use an LIS-based strategy with combined-rotation optimization, and the product code depends only on the Go standard library. The repository also contains an audit-facing test suite that mirrors the executable checks from the school rubric.
+The solver uses exact search for small inputs and an LIS-based strategy for larger ones. Product code uses only the Go standard library.
 
-· [Русская версия](README_RU.md)
+· [Русская версия](README_RU.md)  
+· [School repository](https://01.tomorrow-school.ai/git/nyestaye/push-swap)
 
 ## 📋 TOC
 
 - [🚀 Quick start](#-quick-start)
 - [📝 About](#-about)
-- [✨ Features](#-features)
-- [🔄 Architecture](#-architecture)
-- [🎛️ Instructions](#️-instructions)
-- [🧠 Sorting algorithm](#-sorting-algorithm)
+- [🎛️ Operations](#️-operations)
+- [🧠 Sorting strategy](#-sorting-strategy)
 - [✅ Checker](#-checker)
 - [🧪 Tests and audit](#-tests-and-audit)
-- [🧰 Technology stack](#-technology-stack)
 - [📁 Project structure](#-project-structure)
-- [⚠️ Notes](#️-notes)
 - [🧑‍💻 Authors](#-authors)
 
 ## 🚀 Quick start
 
-### Prerequisites
+### Requirements
 
 - Go `1.21+`
 - Git
-- Bash / Git Bash or PowerShell
-- GNU Make is optional
+- Bash; Git Bash is supported on Windows
 
 ### Clone
 
@@ -39,36 +35,24 @@ cd push-swap
 
 ### Build
 
-Linux / macOS / Git Bash with Make:
+The same commands work in Bash on Linux/macOS and in Git Bash on Windows:
 
 ```bash
-make all
+go build ./cmd/checker
+go build ./cmd/push-swap
 ```
 
-Manual build:
+Go creates `checker` and `push-swap` on Linux/macOS and `checker.exe` and `push-swap.exe` on Windows.
 
-```bash
-go build -o checker ./cmd/checker
-go build -o push-swap ./cmd/push-swap
-```
+### Run
 
-Windows PowerShell:
-
-```powershell
-.\build.ps1
-```
-
-The script creates `checker.exe` and `push-swap.exe`.
-
-### First run
+Examples below use Linux/macOS binary names. In Git Bash on Windows, use the same commands with `.exe`.
 
 ```bash
 ./push-swap "2 1 3 6 5 8"
 ```
 
-The program prints only sorting instructions, one per line.
-
-Validate a generated sequence:
+Validate the generated sequence:
 
 ```bash
 ARG="4 67 3 87 23"
@@ -83,292 +67,129 @@ OK
 
 ## 📝 About
 
-The project operates on two stacks:
+The assignment operates on two stacks:
 
-- `A` contains the input integers; the first integer is at the top of the stack;
-- `B` starts empty and is used as auxiliary storage.
+- `A` starts with the input integers; the first integer is on top;
+- `B` starts empty;
+- the target state is `A` sorted in ascending order and `B` empty.
 
-The goal is to leave `A` sorted in ascending order from top to bottom and `B` empty while using only the allowed push-swap instructions.
+`push-swap` may print only the allowed operations, one per line. `checker` reads those operations from stdin and prints `OK` when the final state is correct, otherwise `KO`.
 
-The repository builds two programs:
+Invalid integers, duplicates, unknown operations, and malformed checker input produce `Error` on stderr. With no command-line arguments, both programs print nothing.
 
-| Program | Responsibility |
-| --- | --- |
-| `push-swap` | generate an instruction sequence that sorts the input stack |
-| `checker` | read instructions from stdin, execute them, and print `OK` or `KO` |
+## 🎛️ Operations
 
-Invalid integer arguments and duplicates produce `Error` on stderr. `checker` also reports `Error` for unknown or incorrectly formatted instructions.
+The assignment defines exactly 11 operations:
 
-When no arguments are supplied, both programs exit without output.
+- `pa`, `pb` — push the top element from one stack to the other;
+- `sa`, `sb`, `ss` — swap the first two elements of one or both stacks;
+- `ra`, `rb`, `rr` — rotate one or both stacks forward;
+- `rra`, `rrb`, `rrr` — rotate one or both stacks backwards.
 
-## ✨ Features
+An operation that cannot affect a stack because it contains too few elements leaves that stack unchanged.
 
-### Sorting
-
-- all 11 allowed push-swap operations;
-- negative and arbitrary `int` values;
-- rank normalization for order-only reasoning;
-- exact small-stack sorting;
-- LIS-based large-stack sorting;
-- combined rotations through `rr` and `rrr`;
-- final rotation that places the minimum element on top.
-
-### Validation
-
-- integer input parsing;
-- duplicate detection;
-- `Error\n` on stderr for invalid input;
-- strict instruction-token validation;
-- every instruction must be newline-terminated;
-- unknown and malformed instructions are rejected.
-
-### Verification
-
-- unit tests for stack, actions, validation, and algorithm modules;
-- exhaustive permutations for sizes `2..6`;
-- exhaustive `7! = 5040` permutations through the large/LIS path;
-- deterministic 100-element stress tests;
-- dedicated `tests/audit_test.go` mirroring the executable school audit checks;
-- dependency validation confirming product code uses only the Go standard library.
-
-## 🔄 Architecture
-
-```text
-                    command-line integers
-                             |
-                             v
-                    +------------------+
-                    |    validation    |
-                    +---------+--------+
-                              |
-                              v
-                         +---------+
-                         | stack A |
-                         +---------+
-
-        push-swap                           checker
-            |                                  |
-            v                                  v
- +----------------------+          +-----------------------+
- | sorting algorithm    |          | stdin instructions    |
- | 2-3 direct           |          | strict validation     |
- | 4-6 exact BFS        |          +-----------+-----------+
- | 7+ LIS + insertion   |                      |
- +----------+-----------+                      v
-            |                         +--------------------+
-            v                         | execute operations |
- +----------------------+             | on stacks A and B  |
- | instruction sequence |             +---------+----------+
- +----------+-----------+                       |
-            |                                   v
-            v                               OK / KO
-          stdout
-```
-
-Shared stack semantics live in `internal/stack` and `internal/actions`, so the solver and checker execute the same operation behavior.
-
-## 🎛️ Instructions
-
-The project supports exactly the 11 instructions defined by the assignment.
-
-| Instruction | Action |
-| --- | --- |
-| `pa` | push the top element of `B` to `A` |
-| `pb` | push the top element of `A` to `B` |
-| `sa` | swap the first two elements of `A` |
-| `sb` | swap the first two elements of `B` |
-| `ss` | execute `sa` and `sb` |
-| `ra` | rotate `A`: the first element becomes the last |
-| `rb` | rotate `B` |
-| `rr` | execute `ra` and `rb` |
-| `rra` | reverse rotate `A`: the last element becomes the first |
-| `rrb` | reverse rotate `B` |
-| `rrr` | execute `rra` and `rrb` |
-
-An operation on a stack with too few elements leaves that stack unchanged.
-
-## 🧠 Sorting algorithm
+## 🧠 Sorting strategy
 
 ### 2–3 elements
 
-Two- and three-element inputs use short direct operation sequences.
+Small direct cases use short hand-written sequences.
 
 ### 4–6 elements
 
-The solver uses breadth-first search over the complete two-stack state space.
-
-Values are first converted to relative ranks, so the search depends only on ordering. For six values the complete state space contains only:
-
-```text
-(6 + 1) × 6! = 5040 states
-```
-
-BFS therefore guarantees a shortest valid instruction sequence for these sizes.
+The solver runs breadth-first search over the complete two-stack state space after converting values to relative ranks. For six values the full state space contains only `7 × 6! = 5040` states, so BFS returns a shortest valid sequence for these sizes.
 
 ### 7+ elements
 
 Larger inputs use an LIS-based strategy:
 
-1. convert values to ranks;
+1. normalize values to ranks;
 2. compute a Longest Increasing Subsequence;
 3. keep LIS elements in `A` and push the others to `B`;
-4. calculate the cheapest insertion for each element moved back from `B`;
-5. combine compatible rotations with `rr` or `rrr`;
-6. rotate the minimum rank to the top after all elements return to `A`.
+4. return elements from `B` using the cheapest insertion position;
+5. combine compatible rotations with `rr` and `rrr`;
+6. rotate the minimum element to the top.
 
-The large solver does not claim a mathematically global minimum for arbitrary input sizes. It optimizes the generated sequence and is validated against the assignment's performance limits.
+This path is optimized for the assignment limits; it does not claim a globally minimal sequence for arbitrary input sizes.
 
 ## ✅ Checker
 
-`checker` receives the same stack `A` through command-line arguments and reads instructions from stdin.
-
-Audit `KO` example:
+Known `KO` case from the assignment audit:
 
 ```bash
 echo -e "sa\npb\nrrr\n" | ./checker "0 9 1 8 2 7 3 6 4 5"
 ```
 
-Result:
-
 ```text
 KO
 ```
 
-Audit `OK` example:
+Known `OK` case:
 
 ```bash
 echo -e "pb\nra\npb\nra\nsa\nra\npa\npa\n" | ./checker "0 9 1 8 2"
 ```
 
-Result:
-
 ```text
 OK
 ```
 
-Instruction parsing is strict: each token must exactly match one of the 11 commands and must be terminated by a newline. Whitespace inside an instruction line is not normalized.
+Checker instruction parsing is strict: each operation must match one of the 11 allowed tokens and be newline-terminated.
 
 ## 🧪 Tests and audit
 
-### Full test suite
+Run the complete test suite:
 
 ```bash
 go test ./... -count=1
 ```
 
-Static analysis:
+Static checks:
 
 ```bash
 go vet ./...
+gofmt -l $(find . -name '*.go' -type f)
 ```
 
-Repo-local contracts:
-
-```bash
-python scripts/validate_agent_contracts.py
-```
-
-### Audit-facing suite
-
-`tests/audit_test.go` mirrors the executable checks from the 01-edu audit list.
+The executable cases from the 01-edu audit list are collected in `tests/audit_test.go` and can be run separately:
 
 ```bash
 go test ./tests -run '^TestAudit_' -count=1 -v
 ```
 
-The suite checks, among other cases:
+That suite covers the official no-output and error cases, the checker `OK` / `KO` examples, `push-swap | checker`, the `< 9` six-number case, `< 12` five-number cases, the `< 700` 100-number limit, and the standard-library-only requirement.
 
-- `push-swap` with no arguments → no output;
-- `2 1 3 6 5 8` → valid solution and `< 9` instructions;
-- already sorted input → no output;
-- non-integer input → `Error`;
-- duplicates → `Error`;
-- two independent 5-number cases → valid solution and `< 12` instructions;
-- checker `KO` example;
-- checker `OK` example;
-- `push-swap | checker` → `OK`;
-- 100 unique numbers → `< 700` instructions and `OK`;
-- standard-library-only product dependencies.
+Additional solver coverage includes:
 
-### Additional solver coverage
-
-The small solver is checked exhaustively across every permutation of sizes `2..6`.
-
-The large solver additionally covers:
-
-- all `5040` permutations of size `7`;
-- random cases across several larger sizes;
-- `500` deterministic permutations of 100 elements;
-- structured 100-element cases: reverse, rotated, and zigzag.
-
-Stress tests do not only count operations: every generated sequence is executed again through the operation layer and must leave `A` sorted and `B` empty.
-
-## 🧰 Technology stack
-
-| Area | Technology |
-| --- | --- |
-| Language | Go `1.21` |
-| Runtime dependencies | Go standard library only |
-| Tests | Go `testing` |
-| Build | Go toolchain, Make, PowerShell |
-| CLI input | command-line arguments + stdin |
-| Repository checks | Go tests, `go vet`, repo-local validator |
-
-`go.mod` contains no third-party dependencies.
+- every permutation of sizes `2..6`;
+- all `5040` permutations of size `7` through the large-solver path;
+- varied larger sizes;
+- `500` deterministic 100-element permutations, with every generated sequence replayed for correctness;
+- structured reverse, rotated, and zigzag 100-element inputs.
 
 ## 📁 Project structure
 
 ```text
 push-swap/
-├── agent/
-│   ├── modules/
-│   ├── schemas/
-│   ├── dependency-graph.json
-│   └── module-index.json
 ├── cmd/
 │   ├── checker/
-│   │   └── main.go
 │   └── push-swap/
-│       └── main.go
 ├── internal/
 │   ├── actions/
-│   │   ├── actions.go
-│   │   └── actions_test.go
 │   ├── algorithm/
-│   │   ├── bench_test.go
-│   │   ├── sort.go
-│   │   └── sort_test.go
 │   ├── stack/
-│   │   ├── stack.go
-│   │   └── stack_test.go
 │   └── validation/
-│       ├── validation.go
-│       └── validation_test.go
-├── scripts/
-│   └── validate_agent_contracts.py
 ├── tests/
 │   ├── audit_test.go
 │   └── integration_test.go
-├── .gitignore
-├── AGENTS.md
-├── build.ps1
+├── agent/
+├── scripts/
 ├── go.mod
 ├── Makefile
 ├── README.md
 └── README_RU.md
 ```
 
-`agent/` and `AGENTS.md` contain repo-local navigation metadata and validation contracts. They are not part of the runtime path of either CLI program.
-
-## ⚠️ Notes
-
-- Product code uses only standard Go packages.
-- Built `checker`, `push-swap`, and Windows `.exe` binaries are ignored by Git.
-- `push-swap` prints nothing for already sorted input and when no arguments are supplied.
-- `checker` prints nothing when no arguments are supplied.
-- Errors are written as `Error\n` to stderr.
-- Exact BFS guarantees shortest sequences for sizes `4..6`; the `7+` solver uses an optimized LIS-based strategy without claiming global optimality.
-- Audit performance targets are `< 9` for `2 1 3 6 5 8`, `< 12` for tested 5-number cases, and `< 700` for 100 unique numbers.
+`cmd/` contains the two executables. Shared stack and operation semantics live under `internal/`; tests exercise both the internal logic and the compiled CLI programs.
 
 ## 🧑‍💻 Authors
 
