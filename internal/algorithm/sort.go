@@ -3,6 +3,7 @@ package algorithm
 
 import (
 	"math"
+	"push-swap/internal/actions"
 	"push-swap/internal/stack"
 	"sort"
 )
@@ -24,12 +25,8 @@ func Sort(a *stack.Stack) []string {
 		result = sort2(a, result)
 	case 3:
 		result = sort3(a, result)
-	case 4:
-		result = sort4(a, b, result)
-	case 5:
-		result = sort5(a, b, result)
-	case 6:
-		result = sort6(a, b, result)
+	case 4, 5, 6:
+		result = sortSmallExact(a, b)
 	default:
 		result = sortLarge(a, b, result)
 	}
@@ -76,171 +73,143 @@ func sort3(a *stack.Stack, result []string) []string {
 	return result
 }
 
-// sort4: выталкиваем 1 минимальный в B, сортируем 3, возвращаем.
-func sort4(a *stack.Stack, b *stack.Stack, result []string) []string {
-	minIdx := 0
-	for i := 1; i < a.Len(); i++ {
-		if a.Data[i] < a.Data[minIdx] {
-			minIdx = i
-		}
-	}
-	for minIdx > 0 {
-		a.Rotate()
-		result = append(result, "ra")
-		minIdx--
-	}
-	if a.Len() > 0 {
-		b.Push(a.Pop())
-		result = append(result, "pb")
-	}
-	result = sort3(a, result)
-	if b.Len() > 0 {
-		a.Push(b.Pop())
-		result = append(result, "pa")
-	}
-	return result
+type smallState struct {
+	data [6]int
+	aLen int
+	n    int
 }
 
-// sort5: выталкиваем 2 минимальных в B, сортируем 3, возвращаем обратно.
-func sort5(a *stack.Stack, b *stack.Stack, result []string) []string {
-	// Оптимальный случай: стек полностью убывает (например 5 4 3 2 1).
-	if isDescending(a.Data) {
-		a.ReverseRotate()
-		result = append(result, "rra")
-		b.Push(a.Pop())
-		result = append(result, "pb")
-		a.ReverseRotate()
-		result = append(result, "rra")
-		b.Push(a.Pop())
-		result = append(result, "pb")
-		result = sort3(a, result)
-		for b.Len() > 0 {
-			a.Push(b.Pop())
-			result = append(result, "pa")
-		}
-		return result
-	}
-
-	m1, m2 := findTwoSmallest(a.Data)
-
-	// Два минимальных уже сверху (например ... 2 1).
-	if a.Len() >= 2 && a.Data[0] == m1 && a.Data[1] == m2 {
-		b.Push(a.Pop())
-		result = append(result, "pb")
-		b.Push(a.Pop())
-		result = append(result, "pb")
-		result = sort3(a, result)
-		for b.Len() > 0 {
-			a.Push(b.Pop())
-			result = append(result, "pa")
-		}
-		return result
-	}
-
-	for _, target := range []int{m1, m2} {
-		for a.Data[0] != target {
-			a.Rotate()
-			result = append(result, "ra")
-		}
-		b.Push(a.Pop())
-		result = append(result, "pb")
-	}
-	result = sort3(a, result)
-	for b.Len() > 0 {
-		a.Push(b.Pop())
-		result = append(result, "pa")
-	}
-	if a.Len() >= 2 && a.Data[0] > a.Data[1] {
-		a.Swap()
-		result = append(result, "sa")
-	}
-	return result
+type smallStep struct {
+	previous  smallState
+	operation string
 }
 
-// isDescending проверяет, убывает ли стек сверху вниз.
-func isDescending(data []int) bool {
-	if len(data) < 2 {
-		return false
-	}
-	for i := 0; i < len(data)-1; i++ {
-		if data[i] <= data[i+1] {
-			return false
-		}
-	}
-	return true
+var smallOperations = [...]string{
+	"sa", "sb", "ss", "pa", "pb", "ra", "rb", "rr", "rra", "rrb", "rrr",
 }
 
-// sort6: оптимизированная сортировка 6 элементов.
-func sort6(a *stack.Stack, b *stack.Stack, result []string) []string {
-	// Специальный случай: два верхних — два минимальных (в обратном порядке).
-	// Оптимальная последовательность: pb pb ra sa rrr pa pa = 7 инструкций.
-	min1, min2 := findTwoSmallest(a.Data)
-	if a.Data[0] == min2 && a.Data[1] == min1 {
-		b.Push(a.Pop())
-		result = append(result, "pb")
-		b.Push(a.Pop())
-		result = append(result, "pb")
-		a.Rotate()
-		result = append(result, "ra")
-		a.Swap()
-		result = append(result, "sa")
-		a.ReverseRotate()
-		b.ReverseRotate()
-		result = append(result, "rrr")
-		for b.Len() > 0 {
-			a.Push(b.Pop())
-			result = append(result, "pa")
-		}
-		return result
+// sortSmallExact uses breadth-first search for 4-6 elements.
+// The complete state space for six values is only 7 * 6! = 5040 states,
+// so BFS guarantees the shortest valid instruction sequence.
+func sortSmallExact(a, b *stack.Stack) []string {
+	ranks := buildRankMap(a.Data)
+	start := smallState{aLen: a.Len(), n: a.Len()}
+	goal := smallState{aLen: a.Len(), n: a.Len()}
+	for i, value := range a.Data {
+		start.data[i] = ranks[value]
+		goal.data[i] = i
 	}
-	// Общий случай: выталкиваем 2 минимальных
-	for pushCount := 0; pushCount < 2; pushCount++ {
-		minIdx := 0
-		for i := 1; i < a.Len(); i++ {
-			if a.Data[i] < a.Data[minIdx] {
-				minIdx = i
+
+	queue := make([]smallState, 1, 5040)
+	queue[0] = start
+	visited := map[smallState]bool{start: true}
+	steps := make(map[smallState]smallStep, 5040)
+
+	found := false
+	for head := 0; head < len(queue) && !found; head++ {
+		current := queue[head]
+		for _, operation := range smallOperations {
+			next := applySmallOperation(current, operation)
+			if next == current || visited[next] {
+				continue
 			}
-		}
-		for minIdx > 0 {
-			a.Rotate()
-			result = append(result, "ra")
-			minIdx--
-		}
-		if a.Len() > 0 {
-			b.Push(a.Pop())
-			result = append(result, "pb")
+			visited[next] = true
+			steps[next] = smallStep{previous: current, operation: operation}
+			if next == goal {
+				found = true
+				break
+			}
+			queue = append(queue, next)
 		}
 	}
-	result = sort4(a, b, result)
-	for b.Len() > 0 {
-		a.Push(b.Pop())
-		result = append(result, "pa")
+
+	if !found {
+		return nil
 	}
-	if a.Len() >= 2 && a.Data[0] > a.Data[1] {
-		a.Swap()
-		result = append(result, "sa")
+
+	result := make([]string, 0)
+	for current := goal; current != start; {
+		step := steps[current]
+		result = append(result, step.operation)
+		current = step.previous
+	}
+	for left, right := 0, len(result)-1; left < right; left, right = left+1, right-1 {
+		result[left], result[right] = result[right], result[left]
+	}
+
+	for _, operation := range result {
+		actions.ExecuteSilent(a, b, operation)
 	}
 	return result
 }
 
-// findTwoSmallest возвращает два минимальных значения из слайса.
-func findTwoSmallest(data []int) (int, int) {
-	if len(data) < 2 {
-		return 0, 0
-	}
-	m1, m2 := data[0], data[1]
-	if m2 < m1 {
-		m1, m2 = m2, m1
-	}
-	for i := 2; i < len(data); i++ {
-		if data[i] < m1 {
-			m2 = m1
-			m1 = data[i]
-		} else if data[i] < m2 {
-			m2 = data[i]
+func applySmallOperation(state smallState, operation string) smallState {
+	next := state
+	switch operation {
+	case "pa":
+		if next.aLen == next.n {
+			return state
 		}
+		value := next.data[next.aLen]
+		copy(next.data[1:next.aLen+1], next.data[:next.aLen])
+		next.data[0] = value
+		next.aLen++
+	case "pb":
+		if next.aLen == 0 {
+			return state
+		}
+		value := next.data[0]
+		copy(next.data[:next.aLen-1], next.data[1:next.aLen])
+		next.data[next.aLen-1] = value
+		next.aLen--
+	case "sa":
+		swapSmall(next.data[:], 0, next.aLen)
+	case "sb":
+		swapSmall(next.data[:], next.aLen, next.n)
+	case "ss":
+		swapSmall(next.data[:], 0, next.aLen)
+		swapSmall(next.data[:], next.aLen, next.n)
+	case "ra":
+		rotateSmall(next.data[:], 0, next.aLen)
+	case "rb":
+		rotateSmall(next.data[:], next.aLen, next.n)
+	case "rr":
+		rotateSmall(next.data[:], 0, next.aLen)
+		rotateSmall(next.data[:], next.aLen, next.n)
+	case "rra":
+		reverseRotateSmall(next.data[:], 0, next.aLen)
+	case "rrb":
+		reverseRotateSmall(next.data[:], next.aLen, next.n)
+	case "rrr":
+		reverseRotateSmall(next.data[:], 0, next.aLen)
+		reverseRotateSmall(next.data[:], next.aLen, next.n)
 	}
-	return m1, m2
+	return next
+}
+
+func swapSmall(data []int, start, end int) {
+	if end-start < 2 {
+		return
+	}
+	data[start], data[start+1] = data[start+1], data[start]
+}
+
+func rotateSmall(data []int, start, end int) {
+	if end-start < 2 {
+		return
+	}
+	first := data[start]
+	copy(data[start:end-1], data[start+1:end])
+	data[end-1] = first
+}
+
+func reverseRotateSmall(data []int, start, end int) {
+	if end-start < 2 {
+		return
+	}
+	last := data[end-1]
+	copy(data[start+1:end], data[start:end-1])
+	data[start] = last
 }
 
 // sortLarge использует алгоритм LIS для больших стеков (7+ элементов).
