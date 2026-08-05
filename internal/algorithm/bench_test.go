@@ -33,6 +33,29 @@ func checkLarge100(t *testing.T, name string, input []int) int {
 	return len(instructions)
 }
 
+func TestSort_Large7AllPermutations(t *testing.T) {
+	input := []int{0, 1, 2, 3, 4, 5, 6}
+	forEachPermutation(input, func(permutation []int) {
+		a := stack.NewFromSlice(permutation)
+		instructions := Sort(a)
+		verifySort(t, permutation, instructions)
+	})
+}
+
+func TestSort_LargeVariedSizes(t *testing.T) {
+	for _, size := range []int{8, 9, 16, 31, 64, 99, 101, 128} {
+		t.Run(strconv.Itoa(size), func(t *testing.T) {
+			for seed := int64(0); seed < 50; seed++ {
+				rng := rand.New(rand.NewSource(int64(size)*1000 + seed))
+				input := rng.Perm(size)
+				a := stack.NewFromSlice(input)
+				instructions := Sort(a)
+				verifySort(t, input, instructions)
+			}
+		})
+	}
+}
+
 func TestSort_Large100Stress(t *testing.T) {
 	maxInstructions := 0
 	maxSeed := int64(-1)
