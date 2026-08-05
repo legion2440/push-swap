@@ -193,6 +193,6 @@ push-swap/
 
 ## 🧑‍💻 Авторы
 
-1. Әсет Байырша ([@abaiyrsh](https://github.com/abaiyrsh))
-2. Nazar Yestayev ([@nyestaye](https://github.com/nyestaye))
-3. David Kortel ([@dkortel](https://github.com/dkortel))
+1. Әсет Байырша (@abaiyrsh)
+2. Nazar Yestayev (@nyestaye)
+3. David Kortel (@dkortel)
