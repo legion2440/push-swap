@@ -18,15 +18,14 @@ func ParseArgs(args []string) ([]int, error) {
 		return nil, nil
 	}
 
-	// Объединяем все аргументы и разбиваем по пробелам
+	// Объединяем все аргументы и разбиваем по пробелам.
 	var allParts []string
 	for _, arg := range args {
 		parts := strings.Fields(arg)
+		if len(parts) == 0 {
+			return nil, fmt.Errorf("пустой аргумент")
+		}
 		allParts = append(allParts, parts...)
-	}
-
-	if len(allParts) == 0 {
-		return nil, nil
 	}
 
 	result := make([]int, 0, len(allParts))
