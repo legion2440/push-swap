@@ -33,7 +33,7 @@ Small stacks use exact solutions, larger stacks use an LIS-based strategy with c
 ### Clone
 
 ```bash
-git clone https://github.com/legion2440/push-swap.git
+git clone https://01.tomorrow-school.ai/git/nyestaye/push-swap
 cd push-swap
 ```
 
