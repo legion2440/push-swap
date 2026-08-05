@@ -73,3 +73,42 @@ func TestSortAlreadySorted(t *testing.T) {
 		t.Errorf("Sort(отсортированного) должен вернуть пустой список, получили %v", instructions)
 	}
 }
+
+func TestSortSmall_AllPermutations(t *testing.T) {
+	for size := 2; size <= 6; size++ {
+		input := make([]int, size)
+		for i := range input {
+			input[i] = i
+		}
+		forEachPermutation(input, func(permutation []int) {
+			a := stack.NewFromSlice(permutation)
+			instructions := Sort(a)
+			b := stack.New()
+			check := stack.NewFromSlice(permutation)
+			runInstructions(check, b, instructions)
+			if !check.IsSorted() || b.Len() != 0 {
+				t.Fatalf("Sort(%v): result is not sorted; instructions: %v", permutation, instructions)
+			}
+			if size == 5 && len(instructions) >= 12 {
+				t.Fatalf("Sort(%v): %d instructions, audit requires < 12", permutation, len(instructions))
+			}
+		})
+	}
+}
+
+func forEachPermutation(values []int, visit func([]int)) {
+	var generate func(int)
+	generate = func(index int) {
+		if index == len(values) {
+			permutation := append([]int(nil), values...)
+			visit(permutation)
+			return
+		}
+		for i := index; i < len(values); i++ {
+			values[index], values[i] = values[i], values[index]
+			generate(index + 1)
+			values[index], values[i] = values[i], values[index]
+		}
+	}
+	generate(0)
+}
